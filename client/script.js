@@ -1,9 +1,10 @@
 /* =========================================================================
    PHARMAPULSE FRONTEND - CONNECTED TO SQLITE BACKEND
    ========================================================================= */
-
-const API_BASE = 'http://localhost:5000/api';
-let authToken = localStorage.getItem('pharmapulse_token') || null;
+// Point to localhost during local development, or Render in production
+const API_BASE_URL = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+  ? 'http://localhost:5000/api'
+  : 'https://pharmapulse-api.onrender.com/api'; // <-- Ensure this matches your Render URL exactly
 
 const CURRENCY_CONFIG = {
   INR: { symbol: '₹', rate: 1.0, label: 'India (₹ INR)' },
@@ -51,33 +52,60 @@ let pendingRxFile = null;
 /* =========================================================================
    HTTP REQUEST WRAPPER
    ========================================================================= */
+// Base URL configuration
+const API_BASE_URL = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+  ? 'http://localhost:5000/api'
+  : 'https://pharmapulse-api.onrender.com/api'; // Render production URL
+
 async function apiRequest(endpoint, method = 'GET', body = null, isFormData = false) {
+  // 1. Fallback to localStorage if in-memory authToken is not yet populated
+  const token = authToken || localStorage.getItem('pharmapulse_token');
+
   const headers = {};
-  if (authToken) {
-    headers['Authorization'] = `Bearer ${authToken}`;
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
   }
 
-  // Do NOT set Content-Type for FormData
+  // Never set Content-Type header manually for FormData (browser sets boundary)
   if (!isFormData && body) {
     headers['Content-Type'] = 'application/json';
   }
 
   const options = {
     method,
-    headers,
-    body: isFormData ? body : (body ? JSON.stringify(body) : null)
+    headers
   };
 
-  try {
-    const res = await fetch(`${API_BASE}${endpoint}`, options);
+  if (body) {
+    options.body = isFormData ? body : JSON.stringify(body);
+  }
 
-    // Read response text first to guard against HTML error pages
+  // 2. Prevent double slash or double /api/ prefix
+  let cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+  if (cleanEndpoint.startsWith('/api/')) {
+    cleanEndpoint = cleanEndpoint.replace('/api', '');
+  }
+
+  try {
+    const res = await fetch(`${API_BASE_URL}${cleanEndpoint}`, options);
+
+    // Read raw text first to avoid crash on non-JSON server error pages
     const text = await res.text();
     let data;
     try {
       data = JSON.parse(text);
     } catch {
       data = { error: text || `HTTP ${res.status}: ${res.statusText}` };
+    }
+
+    // 3. Auto-logout if token is expired or invalid
+    if (res.status === 401 || res.status === 403) {
+      localStorage.removeItem('pharmapulse_token');
+      localStorage.removeItem('pharmapulse_user');
+      authToken = null;
+      document.getElementById('app-layout')?.classList.add('hidden');
+      document.getElementById('auth-screen')?.classList.remove('hidden');
+      if (typeof switchAuthView === 'function') switchAuthView('login');
     }
 
     if (!res.ok) {
