@@ -53,9 +53,7 @@ let pendingRxFile = null;
    HTTP REQUEST WRAPPER
    ========================================================================= */
 // Base URL configuration
-const API_BASE_URL = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
-  ? 'http://localhost:5000/api'
-  : 'https://pharmapulse-api.onrender.com/api'; // Render production URL
+
 
 async function apiRequest(endpoint, method = 'GET', body = null, isFormData = false) {
   // 1. Fallback to localStorage if in-memory authToken is not yet populated
