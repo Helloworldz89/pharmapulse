@@ -1,0 +1,1467 @@
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PharmaPulse | Enterprise Pharmacy Management</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <!-- Use Chart.js 4.4 CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</head>
+<body>
+
+  <!-- ================= AUTHENTICATION OVERLAY ================= -->
+  <div id="auth-screen" class="auth-wrapper">
+    <div class="auth-card">
+      <div class="brand-badge"><i class="fa-solid fa-plus"></i></div>
+      <h1 class="brand-title">PharmaPulse Portal</h1>
+      <p class="brand-subtitle">Enterprise Pharmacy Management &amp; Regulatory System</p>
+
+      <div class="tab-container" id="main-tab-bar">
+        <button type="button" class="tab-btn active" id="tab-login" onclick="switchAuthView('login')">Staff Sign In</button>
+        <button type="button" class="tab-btn" id="tab-register" onclick="switchAuthView('register')">Register New Staff</button>
+      </div>
+
+      <div class="info-notice" id="auth-notice">
+        <i class="fa-solid fa-circle-info"></i>
+        <span id="notice-text">Please sign in with the same email and password you used when registering your staff account.</span>
+      </div>
+
+      <!-- SIGN IN FORM -->
+      <form id="login-form" class="auth-form" onsubmit="handleLogin(event)">
+        <div class="form-group">
+          <label for="login-email">Staff Email Address</label>
+          <input type="email" id="login-email" placeholder="e.g. smith@pharmacare.com" value="kundankumar.kk570@gmail.com" required />
+        </div>
+        <div class="form-group">
+          <div class="label-row">
+            <label for="login-password">Password</label>
+            <a href="javascript:void(0)" class="link-text" onclick="switchAuthView('forgot')">Forgot Password?</a>
+          </div>
+          <input type="password" id="login-password" placeholder="••••••••" value="admin123" required />
+        </div>
+        <button type="submit" class="submit-btn">Authorize &amp; Log In</button>
+      </form>
+
+      <!-- REGISTER FORM -->
+      <form id="register-form" class="auth-form hidden" onsubmit="handleRegister(event)">
+        <div class="avatar-upload-section">
+          <div class="avatar-preview-box" id="avatar-preview-box" onclick="document.getElementById('reg-avatar-input').click()">
+            <img id="avatar-preview-img" src="" alt="Avatar" class="hidden" />
+            <div id="avatar-placeholder" class="avatar-placeholder">
+              <i class="fa-solid fa-camera"></i>
+              <span>Add Photo<br><small>(Optional)</small></span>
+            </div>
+          </div>
+          <input type="file" id="reg-avatar-input" accept="image/*" class="hidden" onchange="previewAvatar(event)" />
+          <div class="avatar-actions">
+            <button type="button" class="btn-text-action" onclick="document.getElementById('reg-avatar-input').click()">Choose Image</button>
+            <button type="button" id="remove-avatar-btn" class="btn-text-action danger hidden" onclick="removeAvatar()">Remove</button>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="reg-name">Full Name <span class="required">*</span></label>
+          <input type="text" id="reg-name" placeholder="Dr. Robert Vance" required />
+        </div>
+        <div class="form-group">
+          <label for="reg-email">Work Email Address <span class="required">*</span></label>
+          <input type="email" id="reg-email" placeholder="robert@pharmacare.com" required />
+        </div>
+        <div class="form-row">
+          <div class="form-group flex-1">
+            <label for="reg-license">Staff / License ID <span class="required">*</span></label>
+            <input type="text" id="reg-license" placeholder="PH-8820" required />
+          </div>
+          <div class="form-group flex-1">
+            <label for="reg-role">Role Clearance <span class="required">*</span></label>
+            <select id="reg-role" required>
+              <option value="Super Admin / Pharmacist">Super Admin / Pharmacist</option>
+              <option value="Licensed Dispensary Officer">Licensed Dispensary Officer</option>
+              <option value="Pharmacy Technician">Pharmacy Technician</option>
+              <option value="Inventory Clerk">Inventory Clerk</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="reg-phone">Recovery Phone <span class="optional-tag">(Optional)</span></label>
+          <input type="tel" id="reg-phone" placeholder="+91 98765 43210" />
+        </div>
+        <div class="form-row">
+          <div class="form-group flex-1">
+            <label for="reg-sec-q">Security Question</label>
+            <select id="reg-sec-q">
+              <option value="First clinic worked at?">First clinic worked at?</option>
+              <option value="First pet's name?">First pet's name?</option>
+              <option value="Residency city?">Residency city?</option>
+            </select>
+          </div>
+          <div class="form-group flex-1">
+            <label for="reg-sec-a">Secret Answer</label>
+            <input type="text" id="reg-sec-a" placeholder="Your Answer" />
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="reg-password">Password <span class="required">*</span></label>
+          <input type="password" id="reg-password" placeholder="Min 6 characters" minlength="6" required />
+        </div>
+        <button type="submit" class="submit-btn">Create Staff Account</button>
+      </form>
+
+     <!-- FORGOT PASSWORD FORM (IN-CARD TWO-STEP) -->
+<form id="forgot-form" class="auth-form hidden" onsubmit="handleRecoveryWorkflow(event)">
+  
+  <!-- ==================== STAGE 1: CHANNEL SELECT & INPUT ==================== -->
+  <div id="recovery-stage-1">
+    <div class="recovery-method-picker">
+      <label class="recovery-option">
+        <input type="radio" name="recovery-method" value="email" checked onchange="switchRecoveryMethod('email')" />
+        <span>Email</span>
+      </label>
+      <label class="recovery-option">
+        <input type="radio" name="recovery-method" value="phone" onchange="switchRecoveryMethod('phone')" />
+        <span>Phone SMS</span>
+      </label>
+      <label class="recovery-option">
+        <input type="radio" name="recovery-method" value="question" onchange="switchRecoveryMethod('question')" />
+        <span>Security Q&amp;A</span>
+      </label>
+    </div>
+
+    <!-- Email Panel -->
+    <div class="recovery-panel" id="rec-email-panel">
+      <div class="form-group">
+        <label for="rec-email">Registered Work Email</label>
+        <input type="email" id="rec-email" placeholder="smith@pharmacare.com" />
+      </div>
+    </div>
+
+    <!-- Phone Panel -->
+    <div class="recovery-panel hidden" id="rec-phone-panel">
+      <div class="form-group">
+        <label for="rec-phone">Registered Recovery Phone</label>
+        <input type="tel" id="rec-phone" placeholder="+91 98765 00000" />
+      </div>
+    </div>
+
+    <!-- Security Question Panel -->
+    <div class="recovery-panel hidden" id="rec-question-panel">
+      <div class="form-group">
+        <label for="rec-user-id">Staff Email or ID</label>
+        <input type="text" id="rec-user-id" placeholder="PH-9661" />
+      </div>
+      <div class="form-group">
+        <label for="rec-sec-answer">Security Answer</label>
+        <input type="text" id="rec-sec-answer" placeholder="Enter secret answer" />
+      </div>
+    </div>
+
+    <button type="submit" id="btn-rec-stage-1" class="submit-btn">Send Recovery Instructions</button>
+  </div>
+
+  <!-- ==================== STAGE 2: VERIFY CODE & SET NEW PASSWORD ==================== -->
+  <div id="recovery-stage-2" class="hidden">
+    <div style="background: #f0fdf4; border: 1px solid #bbf7d0; color: #166534; font-size: 12.5px; padding: 10px; border-radius: 6px; margin-bottom: 15px;">
+      <i class="fa-solid fa-circle-check"></i> <span id="stage-2-notice">Account verified. Enter your details below.</span>
+    </div>
+
+    <!-- OTP Input (Hidden for Security Q&A because it was already answered in stage 1) -->
+    <div class="form-group" id="rec-otp-group">
+      <label for="rec-verify-code" id="rec-otp-label">6-Digit Verification Code</label>
+      <input type="text" id="rec-verify-code" placeholder="123456" />
+    </div>
+
+    <!-- New Password -->
+    <div class="form-group">
+      <label for="rec-new-password">New Password (Min. 6 characters)</label>
+      <input type="password" id="rec-new-password" placeholder="••••••••" minlength="6" />
+    </div>
+
+    <button type="submit" id="btn-rec-stage-2" class="submit-btn">Set New Password &amp; Sign In</button>
+  </div>
+
+  <div class="center-link" style="margin-top: 15px;">
+    <a href="javascript:void(0)" class="link-text" onclick="resetAndBackToLogin()"><i class="fa-solid fa-arrow-left"></i> Back to Sign In</a>
+  </div>
+</form>
+
+      <div class="compliance-footer">
+        <i class="fa-solid fa-lock"></i>
+        <span>HIPAA &amp; GMP Compliant Terminal Verification • v2.6.4</span>
+      </div>
+    </div>
+  </div>
+<!-- RECOVERY OTP / PASSWORD ENTRY POPUP (Place right after </form>) -->
+<div id="recovery-verify-modal" class="modal-overlay hidden">
+  <div class="modal-box" style="background: #ffffff; width: 440px; max-width: 92%; border-radius: 12px; padding: 24px; box-shadow: 0 12px 32px rgba(0,0,0,0.25); font-family: inherit;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+      <h3 style="margin: 0; font-size: 17px; color: #0f172a; font-weight: 700;">Account Verification</h3>
+      <button type="button" onclick="closeRecoveryModal()" style="border: none; background: transparent; font-size: 24px; cursor: pointer; color: #94a3b8;">&times;</button>
+    </div>
+
+    <!-- Displays question if user chose Security Q&A -->
+    <div id="rec-modal-q-box" class="hidden" style="background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 6px; padding: 12px; font-size: 13px; color: #0369a1; margin-bottom: 14px;">
+      <strong>Security Question:</strong>
+      <div id="rec-modal-question-text" style="margin-top: 4px; font-weight: 600;"></div>
+    </div>
+
+    <form id="recovery-verify-form" onsubmit="submitRecoveryReset(event)">
+      <div style="margin-bottom: 14px;">
+        <label id="rec-modal-input-label" style="display: block; font-size: 12px; font-weight: 600; color: #334155; margin-bottom: 4px;">6-Digit OTP Code</label>
+        <input type="text" id="rec-modal-token-input" required placeholder="123456" style="width: 100%; padding: 9px 11px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px; box-sizing: border-box;" />
+      </div>
+
+      <div style="margin-bottom: 18px;">
+        <label style="display: block; font-size: 12px; font-weight: 600; color: #334155; margin-bottom: 4px;">New Password (Min. 6 chars)</label>
+        <input type="password" id="rec-modal-password-input" required minlength="6" placeholder="••••••••" style="width: 100%; padding: 9px 11px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px; box-sizing: border-box;" />
+      </div>
+
+      <div style="display: flex; justify-content: flex-end; gap: 8px;">
+        <button type="button" onclick="closeRecoveryModal()" style="padding: 8px 14px; border: 1px solid #cbd5e1; background: #fff; border-radius: 6px; font-size: 13px; cursor: pointer;">Cancel</button>
+        <button type="submit" id="btn-submit-recovery-reset" class="submit-btn" style="padding: 8px 16px; background: #0284c7; color: #fff; border: none; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer;">
+          Update &amp; Sign In
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+  <!-- Mobile Backdrop -->
+  <div id="sidebar-backdrop" class="sidebar-backdrop hidden" onclick="toggleSidebar()"></div>
+
+  <!-- ================= MAIN DASHBOARD APPLICATION ================= -->
+  <div id="app-layout" class="app-layout hidden">
+    <!-- SIDEBAR -->
+    <aside class="sidebar" id="app-sidebar">
+      <div class="brand-header">
+        <div class="brand-icon"><i class="fa-solid fa-plus"></i></div>
+        <div class="brand-text">
+          <h2>PharmaPulse</h2>
+          <span>ENTERPRISE PMS</span>
+        </div>
+        <button class="nav-close-mobile-btn" onclick="toggleSidebar()"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <nav class="sidebar-nav">
+        <div class="nav-section-label">CLINICAL &amp; SALES</div>
+        <button class="nav-item active" data-view="dashboard" onclick="navigate('dashboard')">
+          <i class="fa-solid fa-chart-pie"></i>
+          <span>Dashboard</span>
+        </button>
+        <button class="nav-item" data-view="pos" onclick="navigate('pos')">
+          <i class="fa-solid fa-cash-register"></i>
+          <span>POS / Billing</span>
+        </button>
+        <button class="nav-item" data-view="inventory" onclick="navigate('inventory')">
+          <i class="fa-solid fa-boxes-stacked"></i>
+          <span>Inventory &amp; Stock</span>
+        </button>
+        <button class="nav-item" data-view="prescriptions" onclick="navigate('prescriptions')">
+          <i class="fa-solid fa-file-prescription"></i>
+          <span>Prescriptions (Rx)</span>
+          <span class="badge-counter badge-danger" id="rx-badge-count">0</span>
+        </button>
+
+        <div class="nav-section-label">ADMINISTRATION</div>
+        <button class="nav-item" data-view="suppliers" onclick="navigate('suppliers')">
+          <i class="fa-solid fa-truck-field"></i>
+          <span>Suppliers &amp; PO</span>
+          <span class="badge-counter badge-blue" id="po-badge-count">0</span>
+        </button>
+        <button class="nav-item" data-view="financials" onclick="navigate('financials')">
+          <i class="fa-solid fa-chart-line"></i>
+          <span>Financial Reports</span>
+        </button>
+        <button class="nav-item" data-view="settings" onclick="navigate('settings')">
+          <i class="fa-solid fa-gear"></i>
+          <span>System Settings</span>
+        </button>
+<button class="nav-item" data-view="inquiries" onclick="navigate('inquiries')">
+  <i class="fa-solid fa-headset"></i>
+  <span>Customer Inquiries</span>
+</button>
+      </nav>
+
+    <div class="sidebar-footer">
+  <div class="user-profile">
+    <!-- Dynamic Avatar Box: Displays uploaded photo or two-letter initials -->
+    <div class="user-avatar" id="sidebar-user-avatar-container">
+      <img id="sidebar-user-avatar-img" src="" alt="Avatar" class="hidden" />
+      <span id="sidebar-user-initials">KK</span>
+    </div>
+    <div class="user-meta">
+      <span class="user-name" id="sidebar-user-name">Kundan Kumar</span>
+      <span class="user-role" id="sidebar-user-role">Super Admin / Pharmacist</span>
+    </div>
+    <button type="button" class="logout-btn" onclick="triggerLogout()">Log Out</button>
+  </div>
+</div>
+    </aside>
+
+    <!-- VIEWPORT -->
+    <main class="main-viewport">
+      <header class="top-header">
+        <div class="header-left">
+          <button class="mobile-toggle-btn" onclick="toggleSidebar()"><i class="fa-solid fa-bars"></i></button>
+          <div class="header-titles">
+            <h1 id="view-title">Executive Dashboard</h1>
+            <p id="view-subtitle">Overview &amp; Real-time Analytics</p>
+          </div>
+        </div>
+
+        <div class="header-actions">
+          <div class="quick-export-group">
+            <button class="btn-tool" onclick="exportContextCSV()"><i class="fa-solid fa-file-csv"></i> <span>CSV</span></button>
+            <button class="btn-tool" onclick="triggerContextPrint()"><i class="fa-solid fa-print"></i> <span>Print</span></button>
+            <button class="btn-tool" onclick="openEmailModal()"><i class="fa-solid fa-envelope"></i> <span>Email</span></button>
+            <button class="btn-tool" onclick="openShareModal()"><i class="fa-solid fa-share-nodes"></i> <span>Share</span></button>
+          </div>
+
+          <div class="currency-selector">
+            <select id="currency-select" onchange="handleCurrencyChange(this.value)">
+              <option value="INR">🇮🇳 India (₹ INR)</option>
+              <option value="USD">🇺🇸 United States ($ USD)</option>
+              <option value="EUR">🇪🇺 Eurozone (€ EUR)</option>
+              <option value="GBP">🇬🇧 United Kingdom (£ GBP)</option>
+            </select>
+          </div>
+
+          <div class="live-clock" id="live-clock">10:00:00 PM</div>
+          <div class="user-status-pill">
+            <span class="status-indicator-dot"></span>
+            <span id="header-user-display">Kundan Kumar (Super Admin / Pharmacist)</span>
+          </div>
+        </div>
+      </header>
+
+      <!-- VIEW 1: DASHBOARD -->
+      <section id="view-dashboard" class="content-view active">
+        <div class="kpi-grid">
+          <div class="kpi-card">
+            <div class="kpi-icon money"><i class="fa-solid fa-sack-dollar"></i></div>
+            <div class="kpi-info">
+              <span class="kpi-label">Today's Gross Sales</span>
+              <h3 class="kpi-value" id="kpi-gross-sales">₹0.00</h3>
+              <span class="kpi-sub green">Real-time ledger</span>
+            </div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-icon orders"><i class="fa-solid fa-receipt"></i></div>
+            <div class="kpi-info">
+              <span class="kpi-label">Orders Dispensed</span>
+              <h3 class="kpi-value" id="kpi-orders-count">0</h3>
+              <span class="kpi-sub green">Live register active</span>
+            </div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-icon alerts"><i class="fa-solid fa-triangle-exclamation"></i></div>
+            <div class="kpi-info">
+              <span class="kpi-label">Low Stock Alerts</span>
+              <h3 class="kpi-value" id="kpi-low-stock">0</h3>
+              <span class="kpi-sub orange">Reorder recommended</span>
+            </div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-icon skus"><i class="fa-solid fa-hourglass-half"></i></div>
+            <div class="kpi-info">
+              <span class="kpi-label">Total SKUs Tracked</span>
+              <h3 class="kpi-value" id="kpi-total-skus">5</h3>
+              <span class="kpi-sub green">Active in system</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="charts-grid">
+          <div class="chart-card wide">
+            <div class="card-header">
+              <div>
+                <h4>Weekly Sales Revenue</h4>
+                <p>Prescription (Rx) vs Over-the-Counter (OTC)</p>
+              </div>
+            </div>
+            <div class="chart-wrapper"><canvas id="weeklySalesChart"></canvas></div>
+          </div>
+          <div class="chart-card narrow">
+            <div class="card-header">
+              <div>
+                <h4>Active Stock Distribution</h4>
+                <p>Units broken down by category</p>
+              </div>
+            </div>
+            <div class="chart-wrapper donut-wrapper"><canvas id="stockDistributionChart"></canvas></div>
+          </div>
+        </div>
+
+        <div class="table-card">
+          <div class="card-header">
+            <h4>Stock Alert Watchlist</h4>
+            <button class="btn-link" onclick="navigate('inventory')">Open Full Stock Control &rarr;</button>
+          </div>
+          <div class="table-container">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Medication Name</th>
+                  <th>Generic Salt</th>
+                  <th>Batch</th>
+                  <th>Available Stock</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="watchlist-table-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+     <!-- ================= VIEW 2: POS / BILLING ================= -->
+<section id="view-pos" class="content-view">
+  <div class="pos-layout">
+    <div class="catalog-panel">
+      <div class="filter-controls">
+        <div class="search-box">
+          <i class="fa-solid fa-magnifying-glass"></i>
+          <input type="text" id="pos-search" placeholder="Scan barcode or type OTC medicine name..." oninput="filterPosCatalog()" />
+        </div>
+        <div class="pos-otc-badge-notice">
+          <i class="fa-solid fa-shield-halved"></i>
+          <span><strong>OTC Dispensary Active:</strong> Only Over-the-Counter medicines can be billed directly. Prescription (Rx) medicines require authorized clinical review in the Prescriptions Queue.</span>
+        </div>
+      </div>
+      <div class="pos-grid" id="pos-grid-container"></div>
+    </div>
+
+    <!-- Right: Checkout Register -->
+    <div class="checkout-panel">
+      <div class="customer-inputs">
+        <input type="text" id="pos-cust-name" placeholder="Walk-in Customer" />
+        <input type="tel" id="pos-cust-phone" placeholder="Mobile Number (Optional)" />
+      </div>
+
+      <!-- Prescribed Prescription Metadata Notice (Shown when transferred from Rx Queue) -->
+      <div id="pos-rx-transfer-banner" class="rx-transfer-banner hidden">
+        <i class="fa-solid fa-file-prescription"></i>
+        <div>
+          <span id="pos-rx-transfer-info">Dispensing Verified Prescription #RX-0000</span>
+          <small id="pos-rx-transfer-doctor">Dr. Verified</small>
+        </div>
+      </div>
+
+      <div class="cart-items-list" id="pos-cart-items"></div>
+
+      <!-- Tender Payment Method Selection with Interactive Handlers -->
+      <div class="payment-method-row">
+        <label class="radio-option">
+          <input type="radio" name="tender" value="Cash" checked onchange="handleTenderChange('Cash')" /> Cash
+        </label>
+        <label class="radio-option">
+          <input type="radio" name="tender" value="Card" onchange="handleTenderChange('Card')" /> Card
+        </label>
+        <label class="radio-option">
+          <input type="radio" name="tender" value="UPI / QR" onchange="handleTenderChange('UPI / QR')" /> UPI / QR
+        </label>
+      </div>
+
+      <!-- Card Terminal Reference Box (Revealed when Card is selected) -->
+      <div id="tender-card-box" class="tender-extra-box hidden">
+        <label for="card-auth-ref">POS Card Auth / Approval Reference (RRN) *</label>
+        <input type="text" id="card-auth-ref" placeholder="e.g. TXN-89410291" />
+      </div>
+
+      <!-- Interactive Dynamic UPI / QR Code (Revealed when UPI is selected) -->
+      <div id="tender-upi-box" class="tender-extra-box upi-qr-container hidden">
+        <div class="qr-code-frame">
+          <img id="upi-qr-image" src="" alt="UPI Scan QR" />
+        </div>
+        <div class="upi-text-info">
+          <span>Scan to pay with any UPI App</span>
+          <strong id="upi-id-display">pharmapulse@icici</strong>
+          <p id="upi-payable-display">Payable: ₹0.00</p>
+        </div>
+      </div>
+
+      <div class="cart-summary">
+        <div class="summary-line"><span>Subtotal</span><span id="pos-subtotal">0.00</span></div>
+        <div class="summary-line"><span>GST (<span id="pos-gst-rate">5</span>%):</span><span id="pos-gst-val">0.00</span></div>
+        <div class="summary-line total"><span>Payable Total</span><span id="pos-payable-total">0.00</span></div>
+      </div>
+
+      <div class="cart-action-buttons">
+        <button class="btn-clear-cart" onclick="clearCart()">Clear Cart</button>
+        <button class="btn-dispense" onclick="completeDispense()">Dispense &amp; Invoice</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+      <!-- VIEW 3: INVENTORY -->
+      <section id="view-inventory" class="content-view">
+        <div class="control-bar responsive-bar">
+          <div class="search-box flex-grow">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input type="text" id="inv-search" placeholder="Filter medicines by brand, generic, or batch..." oninput="renderInventory()" />
+          </div>
+          <div class="bar-selectors">
+            <select id="inv-filter-status" onchange="renderInventory()">
+              <option value="All">All Stock Status</option>
+              <option value="Optimal">Optimal</option>
+              <option value="Low Stock">Low Stock</option>
+            </select>
+            <select id="inv-filter-cat" onchange="renderInventory()">
+              <option value="All">All Categories</option>
+              <option value="Antibiotic">Antibiotic</option>
+              <option value="Analgesic">Analgesic</option>
+              <option value="Antidiabetic">Antidiabetic</option>
+              <option value="Antacid">Antacid</option>
+            </select>
+            <button class="btn-primary" onclick="openMedicineModal('add')"><i class="fa-solid fa-plus"></i> Add New Medicine</button>
+          </div>
+        </div>
+
+        <div class="table-card">
+          <div class="table-container">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Medicine Name</th>
+                  <th>Generic Salt</th>
+                  <th>Category</th>
+                  <th>Type</th>
+                  <th>Primary Uses / Indications</th>
+                  <th>Exp Date</th>
+                  <th>Price</th>
+                  <th>Stock Units</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="inventory-table-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+     <!-- ================= VIEW 4: PRESCRIPTIONS QUEUE (Rx) ================= -->
+<section id="view-prescriptions" class="content-view">
+  <div class="control-bar space-between responsive-bar">
+    
+    <!-- Clean, Unified 4-Stage Pipeline Navigation Matching Screenshot -->
+    <div class="filter-pill-group" id="rx-status-filters">
+      <button type="button" class="pill-btn active" onclick="setRxFilter('All')">All</button>
+      <button type="button" class="pill-btn" onclick="setRxFilter('Pending Review')">Pending Review</button>
+      <button type="button" class="pill-btn" onclick="setRxFilter('Verified & Ready')">Verified &amp; Ready</button>
+      <button type="button" class="pill-btn" onclick="setRxFilter('Dispensed')">Dispensed</button>
+    </div>
+
+    <div class="bar-selectors">
+      <div class="search-box">
+        <i class="fa-solid fa-magnifying-glass"></i>
+        <input type="text" id="rx-search" placeholder="Search patient, doctor, or Rx ID..." oninput="renderPrescriptions()" />
+      </div>
+      <select id="rx-sort-order" onchange="renderPrescriptions()">
+        <option value="newest">Newest First</option>
+        <option value="oldest">Oldest First</option>
+      </select>
+      <button class="btn-primary" onclick="openRxUploadModal()"><i class="fa-solid fa-plus"></i> Upload Rx</button>
+    </div>
+  </div>
+
+  <div class="table-card">
+    <div class="table-container">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Slip &amp; Rx Ref</th>
+            <th>Patient Name</th>
+            <th>Demographics</th>
+            <th>Prescribing Physician</th>
+            <th>Date Logged</th>
+            <th>Prescribed Drug</th>
+            <th>Queue Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="rx-table-body"></tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+      <!-- VIEW 5: SUPPLIERS & PO -->
+      <section id="view-suppliers" class="content-view">
+        <div class="control-bar space-between responsive-bar">
+          <div class="segment-btn-group">
+            <button class="segment-btn active" id="po-tab-btn" onclick="switchSupplierSubTab('po')"><i class="fa-solid fa-box"></i> Purchase Orders (PO)</button>
+            <button class="segment-btn" id="supplier-tab-btn" onclick="switchSupplierSubTab('dir')"><i class="fa-solid fa-book"></i> Supplier Directory</button>
+          </div>
+          <div class="bar-selectors">
+            <div class="btn-action-group">
+              <button class="btn-secondary" onclick="openSupplierModal()">+ Register Supplier</button>
+              <button class="btn-primary" onclick="openPurchaseOrderModal()">+ Create PO</button>
+            </div>
+            <div class="search-box">
+              <i class="fa-solid fa-magnifying-glass"></i>
+              <input type="text" id="po-search" placeholder="Search vendor, medicine, or PO #..." oninput="filterSuppliersOrPO()" />
+            </div>
+          </div>
+        </div>
+
+        <div class="table-card" id="po-subtab-view">
+          <div class="table-container">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>PO Reference</th>
+                  <th>Distributor</th>
+                  <th>Order Date</th>
+                  <th>Medication &amp; Qty</th>
+                  <th>Total Inward Cost</th>
+                  <th>PO Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="po-table-body"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="table-card hidden" id="supplier-directory-view">
+          <div class="table-container">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Vendor ID</th>
+                  <th>Vendor Name</th>
+                  <th>Contact Person</th>
+                  <th>Phone / Email</th>
+                  <th>GSTIN / License</th>
+                  <th>Active Orders</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="supplier-dir-table-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- VIEW 6: FINANCIAL REPORTS -->
+      <section id="view-financials" class="content-view">
+        <div class="control-bar space-between">
+          <div class="segment-btn-group">
+            <button class="segment-btn active" id="fin-tab-ledger" onclick="switchFinanceTab('ledger')"><i class="fa-solid fa-sack-dollar"></i> Sales &amp; Revenue Ledger</button>
+            <button class="segment-btn" id="fin-tab-audit" onclick="switchFinanceTab('audit')"><i class="fa-solid fa-scale-balanced"></i> Controlled Substance (Rx) Audit</button>
+          </div>
+        </div>
+
+        <div class="kpi-mini-strip">
+          <div class="mini-kpi"><span>Gross Revenue Dispensed</span><strong id="fin-gross-rev">0.00</strong></div>
+          <div class="mini-kpi"><span>Tax / GST Collected</span><strong id="fin-tax-rev">0.00</strong></div>
+          <div class="mini-kpi"><span>Completed Transactions</span><strong id="fin-tx-count">0</strong></div>
+          <div class="mini-kpi"><span>Schedule Rx Audit Logs</span><strong id="fin-audit-logs">0 Logs</strong></div>
+        </div>
+
+        <div class="table-card">
+          <div class="table-container">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Invoice ID</th>
+                  <th>Date &amp; Time</th>
+                  <th>Patient / Customer</th>
+                  <th>Items Dispensed</th>
+                  <th>Tender</th>
+                  <th>Tax</th>
+                  <th>Net Total Paid</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="financials-table-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- VIEW 7: SYSTEM SETTINGS -->
+      <section id="view-settings" class="content-view">
+        <div class="settings-grid">
+          <div class="settings-card">
+            <div class="card-header-styled">
+              <h4>Pharmacy Clinic Profile</h4>
+              <p>Credentials displayed on customer receipts and official audit paperwork</p>
+            </div>
+            <form id="clinic-profile-form" onsubmit="saveClinicProfile(event)">
+              <div class="form-group">
+                <label>Pharmacy Facility Name</label>
+                <input type="text" id="set-pharmacy-name" required />
+              </div>
+              <div class="form-row">
+                <div class="form-group flex-1">
+                  <label>Drug License Number (DL)</label>
+                  <input type="text" id="set-pharmacy-dl" required />
+                </div>
+                <div class="form-group flex-1">
+                  <label>Tax / GST Number</label>
+                  <input type="text" id="set-pharmacy-gst" required />
+                </div>
+              </div>
+              <div class="form-group">
+                <label>Address &amp; City</label>
+                <input type="text" id="set-pharmacy-address" required />
+              </div>
+              <div class="form-group">
+                <label>Sales Tax Rate (%)</label>
+                <input type="number" id="set-pharmacy-tax" value="5" step="0.1" required />
+              </div>
+
+          <div class="form-group">
+  <label for="setting-upi-id">Dispensary Merchant UPI ID *</label>
+  <input type="text" id="setting-upi-id" name="upi_id" placeholder="e.g. yourclinic@oksbi" required />
+</div>
+              <button type="submit" class="btn-primary" id="btn-save-clinic-profile">Save Profile Changes</button>
+            </form>
+          </div>
+
+          <div class="settings-column">
+            <div class="settings-card">
+              <div class="card-header-styled">
+                <h4>Staff Accounts &amp; Clearance</h4>
+                <p>New staff register through registration portal. Admin role required to edit or remove accounts.</p>
+              </div>
+              <div class="staff-list" id="staff-list-container"></div>
+            </div>
+
+            <div class="settings-card">
+              <div class="card-header-styled">
+                <h4>Database &amp; System Maintenance</h4>
+                <p>Export state backups or reset to demonstration data.</p>
+              </div>
+              <div class="maintenance-actions">
+                <button class="btn-tool-bordered" onclick="exportJsonBackup()"><i class="fa-solid fa-download"></i> Export JSON Backup</button>
+                <button class="btn-danger-outline" onclick="requestResetDatabase()"><i class="fa-solid fa-rotate-left"></i> Reset Database</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= VIEW: CUSTOMER INQUIRIES ================= -->
+<section id="view-inquiries" class="content-view">
+  <div class="panel-header">
+    
+    <button type="button" class="btn-primary" onclick="openNewInquiryModal()">
+      <i class="fa-solid fa-plus"></i> Simulate Customer Inquiry
+    </button>
+  </div>
+
+  <!-- Inquiry Records Table Card -->
+  <div class="table-card" style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; overflow-x: auto;">
+    <table class="data-table" style="width: 100%; border-collapse: collapse; font-size: 13px;">
+      <thead>
+        <tr style="background: #f8fafc; text-align: left; color: #475569; border-bottom: 1px solid #e2e8f0;">
+          <th style="padding: 12px;">ID</th>
+          <th style="padding: 12px;">Received</th>
+          <th style="padding: 12px;">Customer</th>
+          <th style="padding: 12px;">AI Summary &amp; Category</th>
+          <th style="padding: 12px;">Urgency</th>
+          <th style="padding: 12px;">Status</th>
+          <th style="padding: 12px; text-align: center;">Action</th>
+        </tr>
+      </thead>
+      <tbody id="inquiries-table-body">
+        <tr>
+          <td colspan="7" style="text-align: center; color: #94a3b8; padding: 24px;">
+            No customer inquiries logged yet. Click "Simulate Customer Inquiry" to begin.
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+    </main>
+  </div>
+
+  <!-- PRINTABLE OFF-SCREEN DOCUMENT CONTAINER -->
+  <div id="print-paperwork-container" class="print-container"></div>
+
+  <!-- ================= UNIVERSAL CUSTOM DIALOGS ================= -->
+
+ <!-- CUSTOM ALERT MODAL -->
+<div id="custom-alert-modal" class="modal-overlay hidden">
+  <div class="modal-box alert-modal" style="max-width: 380px; text-align: center; padding: 24px;">
+    <div style="font-size: 42px; margin-bottom: 12px;">
+      <i id="alert-icon" class="fa-solid fa-circle-check"></i>
+    </div>
+    <h3 id="alert-title" style="margin-bottom: 8px; font-size: 16px;">Notice</h3>
+    <p id="alert-message" style="font-size: 13px; color: #64748b; margin-bottom: 20px; line-height: 1.5;"></p>
+    <button type="button" class="btn-primary" style="width: 100%; justify-content: center;" onclick="closeCustomAlert()">OK</button>
+  </div>
+</div>
+
+  <!-- Confirm Modal -->
+  <div id="custom-confirm-modal" class="modal-overlay hidden">
+    <div class="modal-box confirm-box">
+      <div class="modal-icon warning"><i class="fa-solid fa-triangle-exclamation"></i></div>
+      <h3 id="confirm-title">Are you sure?</h3>
+      <p id="confirm-message">This action cannot be undone.</p>
+      <div class="modal-btn-row">
+        <button type="button" class="btn-secondary" onclick="closeConfirmModal()">Cancel</button>
+        <button type="button" class="btn-danger" id="confirm-action-btn">Proceed</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Email Dispatcher Modal -->
+  <div id="email-modal" class="modal-overlay hidden">
+    <div class="modal-box form-modal">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-envelope-circle-check"></i> Send Document via Email</h3>
+        <button class="modal-close" onclick="closeEmailModal()">&times;</button>
+      </div>
+      <form onsubmit="handleSendEmail(event)">
+        <div class="form-group">
+          <label>Recipient Email Address *</label>
+          <input type="email" id="email-recipient" placeholder="supervisor@pharmacare.com" required />
+        </div>
+        <div class="form-group">
+          <label>Subject Line *</label>
+          <input type="text" id="email-subject" required />
+        </div>
+        <div class="form-group">
+          <label>Attached Document</label>
+          <div class="attached-file-badge">
+            <i class="fa-solid fa-file-pdf"></i>
+            <span id="email-attachment-name">Report.pdf</span>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Message Content</label>
+          <textarea id="email-body" rows="4"></textarea>
+        </div>
+        <div class="modal-btn-row">
+          <button type="button" class="btn-secondary" onclick="closeEmailModal()">Cancel</button>
+          <button type="submit" class="btn-primary">Send Email</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Share Modal -->
+  <div id="share-modal" class="modal-overlay hidden">
+    <div class="modal-box form-modal">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-share-nodes"></i> Share Live Section Report</h3>
+        <button class="modal-close" onclick="closeShareModal()">&times;</button>
+      </div>
+      <div class="form-group">
+        <label>Section Being Shared</label>
+        <input type="text" id="share-section-name" readonly />
+      </div>
+      <div class="form-group">
+        <label>Export Preview Snippet</label>
+        <textarea id="share-preview-snippet" rows="4" readonly></textarea>
+      </div>
+      <div class="modal-btn-row">
+        <button type="button" class="btn-secondary" onclick="closeShareModal()">Close</button>
+        <button type="button" class="btn-primary" onclick="copyShareLink()">Copy Secure Link</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- POS Invoice Modal -->
+  <div id="invoice-modal" class="modal-overlay hidden">
+    <div class="modal-box form-modal">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-receipt"></i> Medicine Invoice Generated</h3>
+        <button class="modal-close" onclick="closeInvoiceModal()">&times;</button>
+      </div>
+      <div class="invoice-preview-card" id="invoice-preview-content"></div>
+      <div class="modal-btn-row invoice-action-row">
+        <button type="button" class="btn-tool" onclick="printGeneratedInvoice()"><i class="fa-solid fa-print"></i> Print Receipt</button>
+        <button type="button" class="btn-tool" onclick="exportGeneratedInvoiceCSV()"><i class="fa-solid fa-file-csv"></i> Download CSV</button>
+        <button type="button" class="btn-tool" onclick="emailGeneratedInvoice()"><i class="fa-solid fa-envelope"></i> Email Invoice</button>
+        <button type="button" class="btn-primary" onclick="closeInvoiceModal()">Done</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Medicine Modal -->
+  <div id="medicine-modal" class="modal-overlay hidden">
+    <div class="modal-box form-modal">
+      <div class="modal-header">
+        <h3 id="med-modal-title">Add New Medicine</h3>
+        <button class="modal-close" onclick="closeMedicineModal()">&times;</button>
+      </div>
+      <form id="medicine-form" onsubmit="handleSaveMedicine(event)">
+        <input type="hidden" id="med-id" />
+        <div class="form-row">
+          <div class="form-group flex-1">
+            <label>Medicine Name *</label>
+            <input type="text" id="med-name" required />
+          </div>
+          <div class="form-group flex-1">
+            <label>Generic Salt *</label>
+            <input type="text" id="med-salt" required />
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group flex-1">
+            <label>Category *</label>
+            <select id="med-category" required>
+              <option value="Antibiotic">Antibiotic</option>
+              <option value="Analgesic">Analgesic</option>
+              <option value="Antidiabetic">Antidiabetic</option>
+              <option value="Antacid">Antacid</option>
+            </select>
+          </div>
+          <div class="form-group flex-1">
+            <label>Type Clearance *</label>
+            <select id="med-type" required>
+              <option value="Rx">Rx (Prescription)</option>
+              <option value="OTC">OTC (Over Counter)</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Primary Uses / Indications *</label>
+          <input type="text" id="med-indications" required />
+        </div>
+        <div class="form-row">
+          <div class="form-group flex-1">
+            <label>Exp Date *</label>
+            <input type="month" id="med-exp" required />
+          </div>
+          <div class="form-group flex-1">
+            <label>Base Price (INR) *</label>
+            <input type="number" id="med-price" step="0.01" required />
+          </div>
+          <div class="form-group flex-1">
+            <label>Stock Units *</label>
+            <input type="number" id="med-stock" required />
+          </div>
+        </div>
+        <div class="modal-btn-row">
+          <button type="button" class="btn-secondary" onclick="closeMedicineModal()">Cancel</button>
+          <button type="submit" class="btn-primary">Save Medicine</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Supplier Modal -->
+  <div id="supplier-modal" class="modal-overlay hidden">
+    <div class="modal-box form-modal">
+      <div class="modal-header">
+        <h3>Register New Supplier</h3>
+        <button class="modal-close" onclick="closeSupplierModal()">&times;</button>
+      </div>
+      <form id="supplier-form" onsubmit="handleSaveSupplier(event)">
+        <div class="form-group">
+          <label>Supplier / Company Name *</label>
+          <input type="text" id="sup-name" required />
+        </div>
+        <div class="form-row">
+          <div class="form-group flex-1">
+            <label>Contact Person *</label>
+            <input type="text" id="sup-contact" required />
+          </div>
+          <div class="form-group flex-1">
+            <label>Phone *</label>
+            <input type="tel" id="sup-phone" required />
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group flex-1">
+            <label>Work Email *</label>
+            <input type="email" id="sup-email" required />
+          </div>
+          <div class="form-group flex-1">
+            <label>GSTIN / DL *</label>
+            <input type="text" id="sup-gst" required />
+          </div>
+        </div>
+        <div class="modal-btn-row">
+          <button type="button" class="btn-secondary" onclick="closeSupplierModal()">Cancel</button>
+          <button type="submit" class="btn-primary">Enroll Supplier</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- PO Modal -->
+  <div id="po-modal" class="modal-overlay hidden">
+    <div class="modal-box form-modal">
+      <div class="modal-header">
+        <h3>Create Purchase Order (PO)</h3>
+        <button class="modal-close" onclick="closePoModal()">&times;</button>
+      </div>
+      <form id="po-form" onsubmit="handleSavePo(event)">
+        <div class="form-group">
+          <label>Distributor / Vendor *</label>
+          <select id="po-distributor-select" required></select>
+        </div>
+        <div class="form-row">
+          <div class="form-group flex-1">
+            <label>Medication *</label>
+            <select id="po-med-select" required></select>
+          </div>
+          <div class="form-group flex-1">
+            <label>Units *</label>
+            <input type="number" id="po-qty" min="1" required />
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Inward Base Cost (INR Total) *</label>
+          <input type="number" id="po-cost" step="0.01" required />
+        </div>
+        <div class="modal-btn-row">
+          <button type="button" class="btn-secondary" onclick="closePoModal()">Cancel</button>
+          <button type="submit" class="btn-primary">Generate Purchase Order</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+<!-- ================= EDIT STAFF PROFILE & CLEARANCE MODAL ================= -->
+<div id="staff-edit-modal" class="modal-overlay hidden">
+  <div class="modal-box" style="background: #ffffff; width: 620px; max-width: 95%; border-radius: 12px; padding: 26px; box-shadow: 0 12px 32px rgba(0,0,0,0.2); max-height: 90vh; overflow-y: auto; font-family: inherit;">
+    
+    <!-- Modal Header -->
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid #e2e8f0; padding-bottom: 12px;">
+      <div>
+        <h3 style="margin: 0; font-size: 18px; color: #0f172a; font-weight: 700;">Edit Staff Clearance &amp; Profile</h3>
+        <p style="margin: 4px 0 0; font-size: 12px; color: #64748b;">Update official credentials, role permissions, and recovery parameters.</p>
+      </div>
+      <button type="button" onclick="closeStaffModal()" style="border: none; background: transparent; font-size: 24px; cursor: pointer; color: #94a3b8; line-height: 1;">&times;</button>
+    </div>
+
+    <form id="staff-edit-form" onsubmit="handleSaveStaff(event)">
+      <!-- Hidden identifier -->
+      <input type="hidden" id="staff-edit-id" />
+
+      <!-- Avatar Photo Section -->
+      <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 18px; padding: 12px; background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0;">
+        <div style="width: 64px; height: 64px; border-radius: 50%; overflow: hidden; background: #e2e8f0; display: flex; align-items: center; justify-content: center; position: relative; cursor: pointer; border: 2px solid #cbd5e1;" onclick="document.getElementById('staff-edit-avatar-input').click()">
+          <img id="staff-edit-avatar-preview" src="" alt="Avatar" class="hidden" style="width: 100%; height: 100%; object-fit: cover;" />
+          <div id="staff-edit-avatar-placeholder" style="text-align: center; color: #64748b; font-size: 20px;">
+            <i class="fa-solid fa-camera"></i>
+          </div>
+        </div>
+        <div>
+          <input type="file" id="staff-edit-avatar-input" accept="image/*" style="display: none;" onchange="previewStaffEditAvatar(event)" />
+          <button type="button" class="btn-text-action" onclick="document.getElementById('staff-edit-avatar-input').click()" style="padding: 6px 12px; font-size: 12px; font-weight: 600; border: 1px solid #cbd5e1; background: #ffffff; border-radius: 6px; cursor: pointer;">
+            Change Photo
+          </button>
+          <p style="margin: 4px 0 0; font-size: 11px; color: #94a3b8;">Supported formats: PNG, JPG, WEBP</p>
+        </div>
+      </div>
+
+      <!-- Row 1: Full Name & Work Email -->
+      <div style="display: flex; gap: 14px; margin-bottom: 14px;">
+        <div style="flex: 1;">
+          <label for="staff-edit-name" style="display: block; font-size: 12px; font-weight: 600; color: #334155; margin-bottom: 4px;">Full Name *</label>
+          <input type="text" id="staff-edit-name" required placeholder="Dr. Robert Vance" style="width: 100%; padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; box-sizing: border-box;" />
+        </div>
+        <div style="flex: 1;">
+          <label for="staff-edit-email" style="display: block; font-size: 12px; font-weight: 600; color: #334155; margin-bottom: 4px;">Work Email Address *</label>
+          <input type="email" id="staff-edit-email" required placeholder="robert@pharmacare.com" style="width: 100%; padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; box-sizing: border-box;" />
+        </div>
+      </div>
+
+      <!-- Row 2: Staff / License ID & Recovery Phone -->
+      <div style="display: flex; gap: 14px; margin-bottom: 14px;">
+        <div style="flex: 1;">
+          <label for="staff-edit-license" style="display: block; font-size: 12px; font-weight: 600; color: #334155; margin-bottom: 4px;">Staff / License ID</label>
+          <input type="text" id="staff-edit-license" placeholder="PH-8820" style="width: 100%; padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; box-sizing: border-box;" />
+        </div>
+        <div style="flex: 1;">
+          <label for="staff-edit-phone" style="display: block; font-size: 12px; font-weight: 600; color: #334155; margin-bottom: 4px;">Recovery Phone</label>
+          <input type="tel" id="staff-edit-phone" placeholder="+91 98765 43210" style="width: 100%; padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; box-sizing: border-box;" />
+        </div>
+      </div>
+
+      <!-- Row 3: Admin Clearance (Role & Status) -->
+      <div style="display: flex; gap: 14px; margin-bottom: 14px;">
+        <div style="flex: 1;" id="staff-role-group">
+          <label for="staff-edit-role" style="display: block; font-size: 12px; font-weight: 600; color: #334155; margin-bottom: 4px;">Role Clearance *</label>
+          <select id="staff-edit-role" required style="width: 100%; padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; box-sizing: border-box; background: #ffffff;">
+            <option value="Super Admin / Pharmacist">Super Admin / Pharmacist</option>
+            <option value="Licensed Dispensary Officer">Licensed Dispensary Officer</option>
+            <option value="Pharmacy Technician">Pharmacy Technician</option>
+            <option value="Inventory Clerk">Inventory Clerk</option>
+          </select>
+        </div>
+        <div style="flex: 1;" id="staff-status-group">
+          <label for="staff-edit-status" style="display: block; font-size: 12px; font-weight: 600; color: #334155; margin-bottom: 4px;">Account Status</label>
+          <select id="staff-edit-status" style="width: 100%; padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; box-sizing: border-box; background: #ffffff;">
+            <option value="true">Active</option>
+            <option value="false">Suspended / Inactive</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Row 4: Security Question & Secret Answer -->
+      <div style="display: flex; gap: 14px; margin-bottom: 14px;">
+        <div style="flex: 1;">
+          <label for="staff-edit-sec-q" style="display: block; font-size: 12px; font-weight: 600; color: #334155; margin-bottom: 4px;">Security Question</label>
+          <select id="staff-edit-sec-q" style="width: 100%; padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; box-sizing: border-box; background: #ffffff;">
+            <option value="First clinic worked at?">First clinic worked at?</option>
+            <option value="First pet's name?">First pet's name?</option>
+            <option value="Residency city?">Residency city?</option>
+            <option value="Primary staff registration ID?">Primary staff registration ID?</option>
+          </select>
+        </div>
+        <div style="flex: 1;">
+          <label for="staff-edit-sec-a" style="display: block; font-size: 12px; font-weight: 600; color: #334155; margin-bottom: 4px;">Secret Answer</label>
+          <input type="text" id="staff-edit-sec-a" placeholder="Enter secret answer" style="width: 100%; padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; box-sizing: border-box;" />
+        </div>
+      </div>
+
+      <!-- Row 5: Change Password (Optional) -->
+      <div style="margin-bottom: 20px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px;">
+        <label for="staff-edit-password" style="display: block; font-size: 12px; font-weight: 600; color: #334155; margin-bottom: 4px;">
+          Set New Password <span style="font-weight: 400; color: #64748b;">(Leave blank to keep existing)</span>
+        </label>
+        <input type="password" id="staff-edit-password" minlength="6" placeholder="Min. 6 characters" style="width: 100%; padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; box-sizing: border-box; background: #ffffff;" />
+      </div>
+
+      <!-- Actions -->
+      <div style="display: flex; justify-content: flex-end; gap: 10px; border-top: 1px solid #e2e8f0; padding-top: 16px;">
+        <button type="button" onclick="closeStaffModal()" style="padding: 9px 16px; border: 1px solid #cbd5e1; background: #ffffff; border-radius: 6px; font-size: 13px; cursor: pointer; color: #334155;">
+          Cancel
+        </button>
+        <button type="submit" class="submit-btn" style="padding: 9px 20px; background: #0284c7; color: #ffffff; border: none; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer;">
+          <i class="fa-solid fa-floppy-disk"></i> Save Changes
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+  <!-- ================= PRESCRIPTION WORKFLOW MODALS ================= -->
+
+  <!-- Stage 1: Upload Modal (Multi-Medicine Support) -->
+<div id="rx-upload-modal" class="modal-overlay hidden">
+  <div class="modal-box form-modal" style="max-width: 680px; width: 95%;">
+    <div class="modal-header">
+      <h3><i class="fa-solid fa-file-circle-plus"></i> Upload Prescription (Rx)</h3>
+      <button class="modal-close" onclick="closeRxUploadModal()">&times;</button>
+    </div>
+    <form id="rx-upload-form" onsubmit="handleInitialRxUpload(event)">
+      
+      <!-- Prescription Slip Dropzone -->
+      <div class="rx-upload-dropzone" onclick="document.getElementById('rx-slip-file').click()">
+        <input type="file" id="rx-slip-file" accept="image/*" class="hidden" required onchange="handleRxImageSelected(event)" />
+        <div id="rx-dropzone-placeholder">
+          <i class="fa-solid fa-cloud-arrow-up"></i>
+          <p><strong>Click to upload physical prescription slip *</strong></p>
+          <span>Supports JPG, PNG, WEBP (Scanned paper slips or e-scripts)</span>
+        </div>
+        <img id="rx-image-preview" src="" alt="Prescription Preview" class="rx-slip-preview hidden" />
+      </div>
+      <div id="rx-file-meta" class="file-name-tag hidden"></div>
+
+      <!-- Patient & Doctor Metadata -->
+      <div class="form-row" style="margin-top: 14px;">
+        <div class="form-group flex-1">
+          <label>Patient Full Name *</label>
+          <input type="text" id="rx-pat-name" placeholder="Sarah Connor" required />
+        </div>
+        <div class="form-group flex-1">
+          <label>Demographics *</label>
+          <input type="text" id="rx-pat-demo" placeholder="Age 34, F" required />
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group flex-1">
+          <label>Prescribing Doctor *</label>
+          <input type="text" id="rx-pat-doctor" placeholder="Dr. Robert Vance" required />
+        </div>
+      </div>
+
+      <!-- Itemized Prescribed Medications Repeater -->
+      <div style="margin-top: 14px; margin-bottom: 16px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+          <label style="font-size: 13px; font-weight: 700; color: #1e293b;">
+            <i class="fa-solid fa-pills"></i> Prescribed Medications *
+          </label>
+          <button type="button" class="btn-text-action" onclick="addRxMedicineRow()" style="font-size: 12.5px; color: #0284c7; font-weight: 600; cursor: pointer; border: none; background: transparent;">
+            <i class="fa-solid fa-plus"></i> Add Another Medicine
+          </button>
+        </div>
+
+        <div id="rx-medicines-container" style="display: flex; flex-direction: column; gap: 10px;">
+          <!-- Dynamic medication rows will be injected here -->
+        </div>
+      </div>
+
+      <div class="modal-btn-row">
+        <button type="button" class="btn-secondary" onclick="closeRxUploadModal()">Cancel</button>
+        <button type="submit" class="btn-primary">Queue as "Pending"</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+  <!-- <!-- STAGE 2: CLINICAL AUDIT & VERIFICATION MODAL -->
+<div id="rx-verify-modal" class="modal-overlay hidden">
+  <div class="modal-box form-modal modal-lg">
+    <div class="modal-header">
+      <h3><i class="fa-solid fa-stethoscope"></i> Stage 2: Clinical Audit &amp; Verification</h3>
+      <button type="button" class="modal-close" onclick="closeRxVerifyModal()">&times;</button>
+    </div>
+
+    <form id="rx-verify-form" onsubmit="submitClinicalVerification(event)">
+      <!-- Hidden ID input -->
+      <input type="hidden" id="verify-rx-id" name="rx_id" />
+
+      <div class="workflow-grid">
+        <!-- Left: Uploaded Prescription Slip View -->
+        <div class="slip-preview-container">
+          <label>Prescription Document Slip</label>
+          <div class="slip-img-frame" style="background:#0f172a; border-radius:8px; overflow:hidden; display:flex; align-items:center; justify-content:center; min-height:220px; max-height:340px;">
+            <img id="verify-slip-img" src="" alt="Prescription Slip" style="max-width:100%; max-height:100%; object-fit:contain; cursor:pointer;" onclick="openSlipLightbox(this.src)" />
+          </div>
+          <small style="color:#64748b; margin-top:4px; display:block;">Click image to enlarge/inspect in lightbox.</small>
+        </div>
+
+        <!-- Right: Verification Audit Fields -->
+        <div class="audit-fields-container">
+          <div class="form-group">
+            <label for="audit-doc-reg">Doctor Council Reg. No. <span class="required">*</span></label>
+            <input type="text" id="audit-doc-reg" name="doc_reg" placeholder="e.g. MCI-98214-A" required />
+          </div>
+
+          <div class="form-group">
+            <label for="audit-dosage">Dosage Regimen &amp; Duration <span class="required">*</span></label>
+            <input type="text" id="audit-dosage" name="dosage" placeholder="e.g. 1 Tab BID x 5 days (After Meals)" required />
+          </div>
+
+          <div class="form-group">
+            <label for="audit-notes">Pharmacist Audit &amp; Clinical Notes</label>
+            <textarea id="audit-notes" name="pharmacist_note" rows="3" placeholder="Checked for contraindications, interactions, and verified patient allergy status."></textarea>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-btn-row" style="margin-top:16px;">
+        <button type="button" class="btn-secondary" onclick="closeRxVerifyModal()">Cancel</button>
+        <button type="submit" id="btn-submit-verify" class="btn-primary">
+          <i class="fa-solid fa-stamp"></i> Authorize &amp; Verify Prescription
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+  <!-- Stage 3: Packaging Modal -->
+  <div id="rx-ready-modal" class="modal-overlay hidden">
+    <div class="modal-box form-modal">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-boxes-packing"></i> Stage 3: Dispensary Packaging &amp; Bin Allocation</h3>
+        <button class="modal-close" onclick="closeRxReadyModal()">&times;</button>
+      </div>
+      <form id="rx-ready-form" onsubmit="submitPackagingReady(event)">
+        <input type="hidden" id="ready-rx-id" />
+        <div class="form-group">
+          <label>Dispensing Bin / Locker Storage Assignment *</label>
+          <input type="text" id="ready-bin-number" placeholder="e.g. BIN-C3 (Refrigerated Locker)" required />
+        </div>
+        <div class="form-row">
+          <div class="form-group flex-1">
+            <label>Assigned Batch Number *</label>
+            <input type="text" id="ready-batch-num" placeholder="BATCH-2026-X8" required />
+          </div>
+          <div class="form-group flex-1">
+            <label>Tamper-Evident Seal Tag *</label>
+            <input type="text" id="ready-seal-tag" placeholder="SEAL-9941" required />
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Dispensary Verification Checklist</label>
+          <div class="checkbox-group">
+            <label><input type="checkbox" required /> Pills counted &amp; packaged in compliant sterile vial</label>
+            <label><input type="checkbox" required /> Auxiliary caution labels &amp; dosage schedule attached</label>
+          </div>
+        </div>
+        <div class="modal-btn-row">
+          <button type="button" class="btn-secondary" onclick="closeRxReadyModal()">Cancel</button>
+          <button type="submit" class="btn-primary"><i class="fa-solid fa-box-archive"></i> Mark "&amp; Ready for Pickup"</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Stage 4: Dispense Modal -->
+  <div id="rx-dispense-modal" class="modal-overlay hidden">
+    <div class="modal-box form-modal">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-hand-holding-medical"></i> Stage 4: Patient Handover &amp; Final Dispensation</h3>
+        <button class="modal-close" onclick="closeRxDispenseModal()">&times;</button>
+      </div>
+      <form id="rx-dispense-form" onsubmit="submitFinalDispense(event)">
+        <input type="hidden" id="dispense-rx-id" />
+        <div class="form-group">
+          <label>Recipient Collector *</label>
+          <select id="dispense-collector-rel" required>
+            <option value="Self (Patient In Person)">Self (Patient In Person)</option>
+            <option value="Spouse / Partner">Spouse / Partner</option>
+            <option value="Parent / Legal Guardian">Parent / Legal Guardian</option>
+            <option value="Authorized Caregiver">Authorized Caregiver</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <div class="form-group flex-1">
+            <label>Collector Photo ID / Aadhaar Reference *</label>
+            <input type="text" id="dispense-id-ref" placeholder="ID Proof Number" required />
+          </div>
+          <div class="form-group flex-1">
+            <label>Payment / Insurance Claim Method *</label>
+            <select id="dispense-payment-method" required>
+              <option value="Cash">Cash</option>
+              <option value="UPI / QR">UPI / QR</option>
+              <option value="Card">Card</option>
+              <option value="Insurance Copay">Insurance Copay</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Mandatory Clinical Consultation</label>
+          <div class="checkbox-group">
+            <label><input type="checkbox" required /> Pharmacist provided verbal consultation on timing &amp; side effects</label>
+            <label><input type="checkbox" required /> Patient/Collector signed digital handover register</label>
+          </div>
+        </div>
+        <div class="modal-btn-row">
+          <button type="button" class="btn-secondary" onclick="closeRxDispenseModal()">Cancel</button>
+          <button type="submit" class="btn-dispense" style="color:#fff;"><i class="fa-solid fa-check-double"></i> Complete Dispensation</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Lightbox Modal -->
+  <div id="slip-lightbox-modal" class="modal-overlay hidden" onclick="closeSlipLightbox()">
+    <div class="lightbox-box" onclick="event.stopPropagation()">
+      <div class="lightbox-header">
+        <span>Prescription Document Inspection</span>
+        <button class="modal-close" onclick="closeSlipLightbox()">&times;</button>
+      </div>
+      <img id="lightbox-full-img" src="" alt="Full Slip" />
+    </div>
+  </div>
+<!-- SIMULATE INQUIRY MODAL -->
+<div id="new-inquiry-modal" class="modal-overlay hidden">
+  <div class="modal-box" style="background: #ffffff; width: 500px; max-width: 90%; border-radius: 10px; padding: 24px; box-shadow: 0 10px 25px rgba(0,0,0,0.2);">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+      <h3 style="margin: 0; font-size: 17px; color: #1e293b;">Simulate Customer Inquiry</h3>
+      <button type="button" onclick="closeNewInquiryModal()" style="border: none; background: transparent; font-size: 22px; cursor: pointer; color: #94a3b8;">&times;</button>
+    </div>
+    <form id="inquiry-form" onsubmit="submitInquiryForm(event)">
+      <div style="margin-bottom: 12px;">
+        <label style="display: block; font-size: 12px; font-weight: 600; color: #334155; margin-bottom: 4px;">Customer Full Name *</label>
+        <input type="text" id="inq-name" required placeholder="e.g. Rahul Sharma" style="width: 100%; padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; box-sizing: border-box;" />
+      </div>
+      <div style="display: flex; gap: 10px; margin-bottom: 12px;">
+        <div style="flex: 1;">
+          <label style="display: block; font-size: 12px; font-weight: 600; color: #334155; margin-bottom: 4px;">Email (For Gmail Auto-Reply) *</label>
+          <input type="email" id="inq-email" required placeholder="customer@example.com" style="width: 100%; padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; box-sizing: border-box;" />
+        </div>
+        <div style="flex: 1;">
+          <label style="display: block; font-size: 12px; font-weight: 600; color: #334155; margin-bottom: 4px;">Phone</label>
+          <input type="text" id="inq-phone" placeholder="9876543210" style="width: 100%; padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; box-sizing: border-box;" />
+        </div>
+      </div>
+      <div style="margin-bottom: 16px;">
+        <label style="display: block; font-size: 12px; font-weight: 600; color: #334155; margin-bottom: 4px;">Customer Message / Query *</label>
+        <textarea id="inq-message" rows="3" required placeholder="Do you have Augmentin 625 Duo in stock? Need 2 strips urgently." style="width: 100%; padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; box-sizing: border-box;"></textarea>
+      </div>
+      <div style="display: flex; justify-content: flex-end; gap: 8px;">
+        <button type="button" onclick="closeNewInquiryModal()" style="padding: 8px 14px; border: 1px solid #cbd5e1; background: #fff; border-radius: 6px; font-size: 13px; cursor: pointer;">Cancel</button>
+        <button type="submit" id="btn-submit-inquiry" class="btn-primary" style="padding: 8px 16px; border-radius: 6px; font-size: 13px; cursor: pointer;">
+          <i class="fa-solid fa-paper-plane"></i> Run AI Automation
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+<!-- PHARMACIST CUSTOM REPLY MODAL -->
+<div id="reply-inquiry-modal" class="modal-overlay hidden">
+  <div class="modal-box" style="background: #ffffff; width: 520px; max-width: 90%; border-radius: 10px; padding: 24px; box-shadow: 0 10px 25px rgba(0,0,0,0.2);">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+      <h3 style="margin: 0; font-size: 17px; color: #1e293b;">Reply to Patient Query</h3>
+      <button type="button" onclick="closeReplyModal()" style="border: none; background: transparent; font-size: 22px; cursor: pointer; color: #94a3b8;">&times;</button>
+    </div>
+
+    <div style="background: #f8fafc; border: 1px solid #e2e8f0; padding: 12px; border-radius: 6px; margin-bottom: 14px; font-size: 13px;">
+      <div><strong>Customer:</strong> <span id="reply-modal-cust"></span> (<span id="reply-modal-email"></span>)</div>
+      <div style="margin-top: 6px; color: #475569;"><strong>Query:</strong> <span id="reply-modal-query"></span></div>
+    </div>
+
+    <!-- Quick Templates -->
+    <div style="margin-bottom: 12px;">
+      <label style="font-size: 12px; font-weight: 600; color: #64748b; margin-bottom: 4px; display: block;">Quick Templates:</label>
+      <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+        <button type="button" class="btn-sm" style="font-size: 11px; padding: 3px 8px; border: 1px solid #cbd5e1; background: #fff; border-radius: 4px; cursor: pointer;" onclick="insertReplyTemplate('stock')">In Stock</button>
+        <button type="button" class="btn-sm" style="font-size: 11px; padding: 3px 8px; border: 1px solid #cbd5e1; background: #fff; border-radius: 4px; cursor: pointer;" onclick="insertReplyTemplate('rx_needed')">Rx Required</button>
+        <button type="button" class="btn-sm" style="font-size: 11px; padding: 3px 8px; border: 1px solid #cbd5e1; background: #fff; border-radius: 4px; cursor: pointer;" onclick="insertReplyTemplate('order_ready')">Ready for Pickup</button>
+      </div>
+    </div>
+
+    <form id="reply-form" onsubmit="submitInquiryReply(event)">
+      <input type="hidden" id="reply-inq-id" />
+      <div style="margin-bottom: 16px;">
+        <label style="display: block; font-size: 12px; font-weight: 600; color: #334155; margin-bottom: 4px;">Pharmacist Response *</label>
+        <textarea id="reply-text" rows="4" required placeholder="Type your advice or status update here..." style="width: 100%; padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; box-sizing: border-box;"></textarea>
+      </div>
+      <div style="display: flex; justify-content: flex-end; gap: 8px;">
+        <button type="button" onclick="closeReplyModal()" style="padding: 8px 14px; border: 1px solid #cbd5e1; background: #fff; border-radius: 6px; font-size: 13px; cursor: pointer;">Cancel</button>
+        <button type="submit" id="btn-send-reply" class="btn-primary" style="padding: 8px 16px; border-radius: 6px; font-size: 13px; cursor: pointer;">
+          <i class="fa-solid fa-paper-plane"></i> Send Email
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- FLOATING AI CHATBOT WIDGET -->
+<div id="pharma-chat-widget">
+  <!-- Launcher Button -->
+  <button id="chat-launcher" onclick="toggleChatWindow()" title="Chat with AI Pharmacy Assistant">
+    <i class="fa-solid fa-comment-dots" id="chat-icon-open"></i>
+    <i class="fa-solid fa-xmark hidden" id="chat-icon-close"></i>
+  </button>
+
+  <!-- Chat Window Panel -->
+  <div id="chat-window" class="hidden">
+    <div class="chat-header">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span class="chat-status-dot"></span>
+        <div>
+          <h4 style="margin: 0; font-size: 14px; font-weight: 700;">PharmaPulse Assistant</h4>
+          <small style="font-size: 11px; opacity: 0.85;">Online • Gemini AI Powered</small>
+        </div>
+      </div>
+      <button onclick="toggleChatWindow()" class="chat-close-btn">&times;</button>
+    </div>
+
+    <!-- Messages Container -->
+    <div id="chat-messages">
+      <div class="chat-msg bot">
+        Hello! I'm your PharmaPulse digital assistant. How can I help you with medicine availability, store hours, or general questions today?
+      </div>
+    </div>
+
+    <!-- Message Input Bar -->
+    <form id="chat-form" onsubmit="sendChatMessage(event)">
+      <input type="text" id="chat-input" placeholder="Type your medication query..." autocomplete="off" required />
+      <button type="submit" id="chat-send-btn">
+        <i class="fa-solid fa-paper-plane"></i>
+      </button>
+    </form>
+  </div>
+</div>
+
+
+  <script src="script.js"></script>
+</body>
+</html>
