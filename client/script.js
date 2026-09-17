@@ -1,3 +1,11 @@
+// Global State & Authentication
+let authToken = localStorage.getItem('pharmapulse_token') || null;
+
+window.state = window.state || {
+  currentUser: JSON.parse(localStorage.getItem('pharmapulse_user') || 'null')
+};
+
+
 /* =========================================================================
    PHARMAPULSE FRONTEND - CONNECTED TO SQLITE BACKEND
    ========================================================================= */
