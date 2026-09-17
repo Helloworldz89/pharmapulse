@@ -138,10 +138,11 @@ async function initDatabase() {
       )
     `);
 
-    // 2. Staff Fallback Migrations for Forgot Password / Profile Fields
-    const staffMigrations = [
+   const staffMigrations = [
       'ALTER TABLE staff ADD COLUMN security_question TEXT',
       'ALTER TABLE staff ADD COLUMN security_answer TEXT',
+      'ALTER TABLE staff ADD COLUMN sec_q TEXT',
+      'ALTER TABLE staff ADD COLUMN sec_a TEXT',
       'ALTER TABLE staff ADD COLUMN reset_token TEXT',
       'ALTER TABLE staff ADD COLUMN reset_expires DATETIME',
       'ALTER TABLE staff ADD COLUMN license TEXT',

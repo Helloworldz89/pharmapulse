@@ -349,23 +349,25 @@ app.post('/api/auth/recover-initiate', (req, res) => {
   let params = [];
 
   if (channel === 'phone') {
-    // Match phone even if one has country code or spacing formatting
     query = `
       SELECT id, name, email, phone, license, 
-             COALESCE(security_question, sec_q) AS security_question,
-             COALESCE(security_answer, sec_a) AS security_answer
+             security_question,
+             security_answer,
+             security_question AS sec_q,
+             security_answer AS sec_a
       FROM staff 
       WHERE phone = ? 
          OR REPLACE(REPLACE(REPLACE(REPLACE(phone, ' ', ''), '-', ''), '+', ''), '(', '') LIKE ?
       LIMIT 1
     `;
-    params = [rawId, `%${cleanDigits.slice(-10)}%`];
+    params = [rawId, `%${rawId.replace(/\D/g, '')}%`];
   } else if (channel === 'question') {
-    // Match across license (PH-xxxx), primary id, or email
     query = `
       SELECT id, name, email, phone, license, 
-             COALESCE(security_question, sec_q) AS security_question,
-             COALESCE(security_answer, sec_a) AS security_answer
+             security_question,
+             security_answer,
+             security_question AS sec_q,
+             security_answer AS sec_a
       FROM staff 
       WHERE LOWER(email) = LOWER(?) 
          OR LOWER(license) = LOWER(?)
@@ -377,8 +379,10 @@ app.post('/api/auth/recover-initiate', (req, res) => {
     // Email channel
     query = `
       SELECT id, name, email, phone, license, 
-             COALESCE(security_question, sec_q) AS security_question,
-             COALESCE(security_answer, sec_a) AS security_answer
+             security_question,
+             security_answer,
+             security_question AS sec_q,
+             security_answer AS sec_a
       FROM staff 
       WHERE LOWER(email) = LOWER(?)
       LIMIT 1
