@@ -16,7 +16,6 @@ if (!dbUrl || !token) {
 
 // Low-level HTTP pipeline runner via Node's native fetch
 async function executeTurso(sql, args = []) {
-  // Convert basic params into Turso typed parameters
   const formattedArgs = args.map(arg => {
     if (arg === null || arg === undefined) return { type: 'null' };
     if (typeof arg === 'number') {
@@ -53,8 +52,8 @@ async function executeTurso(sql, args = []) {
   }
 
   const result = resData.results[0].response.result;
-  const cols = result.cols.map(c => c.name);
-  const rows = result.rows.map(row => {
+  const cols = (result.cols || []).map(c => c.name);
+  const rows = (result.rows || []).map(row => {
     const obj = {};
     row.forEach((val, idx) => {
       obj[cols[idx]] = val.value !== undefined ? val.value : null;
@@ -119,6 +118,7 @@ const db = {
 
 async function initDatabase() {
   try {
+    // 1. Staff Table
     await executeTurso(`
       CREATE TABLE IF NOT EXISTS staff (
         id TEXT PRIMARY KEY,
@@ -138,6 +138,27 @@ async function initDatabase() {
       )
     `);
 
+    // 2. Staff Fallback Migrations for Forgot Password / Profile Fields
+    const staffMigrations = [
+      'ALTER TABLE staff ADD COLUMN security_question TEXT',
+      'ALTER TABLE staff ADD COLUMN security_answer TEXT',
+      'ALTER TABLE staff ADD COLUMN reset_token TEXT',
+      'ALTER TABLE staff ADD COLUMN reset_expires DATETIME',
+      'ALTER TABLE staff ADD COLUMN license TEXT',
+      'ALTER TABLE staff ADD COLUMN phone TEXT',
+      'ALTER TABLE staff ADD COLUMN avatar_url TEXT',
+      'ALTER TABLE staff ADD COLUMN active INTEGER DEFAULT 1'
+    ];
+
+    for (const sql of staffMigrations) {
+      try {
+        await executeTurso(sql);
+      } catch (e) {
+        // Safe to ignore if column already exists
+      }
+    }
+
+    // 3. Clinic Profile
     await executeTurso(`
       CREATE TABLE IF NOT EXISTS clinic_profile (
         id INTEGER PRIMARY KEY DEFAULT 1,
@@ -150,6 +171,7 @@ async function initDatabase() {
       )
     `);
 
+    // 4. Inventory
     await executeTurso(`
       CREATE TABLE IF NOT EXISTS inventory (
         id TEXT PRIMARY KEY,
@@ -165,6 +187,7 @@ async function initDatabase() {
       )
     `);
 
+    // 5. Prescriptions
     await executeTurso(`
       CREATE TABLE IF NOT EXISTS prescriptions (
         id TEXT PRIMARY KEY,
@@ -190,6 +213,7 @@ async function initDatabase() {
       )
     `);
 
+    // 6. Suppliers
     await executeTurso(`
       CREATE TABLE IF NOT EXISTS suppliers (
         id TEXT PRIMARY KEY,
@@ -202,6 +226,7 @@ async function initDatabase() {
       )
     `);
 
+    // 7. Purchase Orders
     await executeTurso(`
       CREATE TABLE IF NOT EXISTS purchase_orders (
         id TEXT PRIMARY KEY,
@@ -214,6 +239,7 @@ async function initDatabase() {
       )
     `);
 
+    // 8. Invoices
     await executeTurso(`
       CREATE TABLE IF NOT EXISTS invoices (
         id TEXT PRIMARY KEY,
@@ -229,6 +255,7 @@ async function initDatabase() {
       )
     `);
 
+    // 9. Customer Inquiries
     await executeTurso(`
       CREATE TABLE IF NOT EXISTS customer_inquiries (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -244,7 +271,7 @@ async function initDatabase() {
       )
     `);
 
-    // Ensure clinic profile row 1 exists
+    // Clinic profile default seed check
     const profileRes = await executeTurso('SELECT * FROM clinic_profile WHERE id = 1');
     if (!profileRes.rows || profileRes.rows.length === 0) {
       await executeTurso(
