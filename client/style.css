@@ -2126,3 +2126,135 @@ body {
 #chat-send-btn:hover {
   background: #0369a1;
 }
+
+
+/* ========================================================
+   DESKTOP SIDEBAR COLLAPSE
+   ======================================================== */
+
+.desktop-collapse-btn {
+  display: none;
+}
+
+@media (min-width: 1025px) {
+  .desktop-collapse-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    color: #94a3b8;
+    font-size: 1rem;
+    padding: 6px;
+    border-radius: 6px;
+    margin-left: auto;
+    transition: transform 0.25s ease;
+  }
+
+  /* Smooth layout transitions */
+  #app-sidebar,
+  .main-content,
+  .main-viewport,
+  .app-main {
+    transition: width 0.25s ease, margin-left 0.25s ease !important;
+  }
+
+  /* 1. Shrink sidebar width and clip horizontal overflow only */
+  body.sidebar-collapsed #app-sidebar {
+    width: 72px !important;
+    min-width: 72px !important;
+    max-width: 72px !important;
+    padding-left: 8px !important;
+    padding-right: 8px !important;
+    overflow-x: hidden !important;
+  }
+
+  /* 2. Adjust main content */
+  body.sidebar-collapsed .main-content,
+  body.sidebar-collapsed .main-viewport,
+  body.sidebar-collapsed .app-main {
+    margin-left: 72px !important;
+  }
+
+  /* 3. Header */
+  body.sidebar-collapsed #app-sidebar .brand-text {
+    display: none !important;
+  }
+
+  body.sidebar-collapsed #collapseIcon {
+    transform: rotate(180deg);
+  }
+
+  /* 4. Hide Section Headings ("CLINICAL & SALES", etc.) */
+  body.sidebar-collapsed #app-sidebar .nav-section-label {
+    display: none !important;
+  }
+
+  /* 5. Menu Items */
+  body.sidebar-collapsed #app-sidebar .nav-item {
+    width: 48px !important;
+    min-width: 48px !important;
+    height: 48px !important;
+    padding: 0 !important;
+    margin: 6px auto !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border-radius: 10px !important;
+  }
+
+  body.sidebar-collapsed #app-sidebar .nav-item i {
+    margin: 0 !important;
+    font-size: 1.2rem !important;
+  }
+
+  /* Hide item labels and badge numbers */
+  body.sidebar-collapsed #app-sidebar .nav-item span {
+    display: none !important;
+  }
+
+  /* 6. User Section & Footer — Fixed to prevent bottom cut-off */
+  body.sidebar-collapsed #app-sidebar .user-meta {
+    display: none !important;
+  }
+
+  body.sidebar-collapsed #app-sidebar .user-profile {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 6px !important;
+    padding: 4px 0 !important;
+  }
+
+  body.sidebar-collapsed #app-sidebar .user-avatar {
+    margin: 0 auto !important;
+  }
+
+  /* Logout button: centered square that stays visible */
+  body.sidebar-collapsed #app-sidebar .logout-btn {
+    width: 36px !important;
+    min-width: 36px !important;
+    height: 36px !important;
+    padding: 0 !important;
+    margin: 0 auto !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-size: 0 !important;
+    color: transparent !important;
+    background: rgba(239, 68, 68, 0.15) !important;
+    border: 1px solid rgba(239, 68, 68, 0.3) !important;
+    border-radius: 8px !important;
+    cursor: pointer !important;
+  }
+
+  body.sidebar-collapsed #app-sidebar .logout-btn::before {
+    content: "\f2f5";
+    font-family: "Font Awesome 6 Free", "Font Awesome 5 Free", "FontAwesome" !important;
+    font-weight: 900 !important;
+    font-size: 0.95rem !important;
+    color: #ef4444 !important;
+  }
+}

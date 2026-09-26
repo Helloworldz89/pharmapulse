@@ -1,8 +1,7 @@
 // Global State & Authentication
-let authToken = localStorage.getItem('pharmapulse_token') || null;
-
+let authToken = sessionStorage.getItem('pharmapulse_token') || null;
 window.state = window.state || {
-  currentUser: JSON.parse(localStorage.getItem('pharmapulse_user') || 'null')
+  currentUser: JSON.parse(sessionStorage.getItem('pharmapulse_user') || 'null')
 };
 
 
@@ -30,7 +29,7 @@ let state = {
     address: '12 Health Hub Avenue, New Delhi, India',
     taxRate: 5.0
   },
-  currentUser: JSON.parse(localStorage.getItem('pharmapulse_user')) || {
+  currentUser: JSON.parse(sessionStorage.getItem('pharmapulse_user')) || {
     id: '',
     name: 'Staff Operator',
     role: 'Licensed Dispensary Officer',
@@ -64,8 +63,8 @@ let pendingRxFile = null;
 
 
 async function apiRequest(endpoint, method = 'GET', body = null, isFormData = false) {
-  // 1. Fallback to localStorage if in-memory authToken is not yet populated
-  const token = authToken || localStorage.getItem('pharmapulse_token');
+  // 1. Fallback to sessionStorage if in-memory authToken is not yet populated
+  const token = authToken || sessionStorage.getItem('pharmapulse_token');
 
   const headers = {};
   if (token) {
@@ -106,6 +105,8 @@ async function apiRequest(endpoint, method = 'GET', body = null, isFormData = fa
 
     // 3. Auto-logout if token is expired or invalid
     if (res.status === 401 || res.status === 403) {
+      sessionStorage.removeItem('pharmapulse_token');
+      sessionStorage.removeItem('pharmapulse_user');
       localStorage.removeItem('pharmapulse_token');
       localStorage.removeItem('pharmapulse_user');
       authToken = null;
@@ -136,8 +137,8 @@ window.addEventListener('DOMContentLoaded', async () => {
   initClock();
 
   // 1. Rehydrate session state from persistent browser storage
-  const savedToken = localStorage.getItem('pharmapulse_token');
-  const savedUserStr = localStorage.getItem('pharmapulse_user');
+  const savedToken = sessionStorage.getItem('pharmapulse_token');
+  const savedUserStr = sessionStorage.getItem('pharmapulse_user');
 
   if (savedToken && savedUserStr) {
     try {
@@ -173,6 +174,8 @@ window.addEventListener('DOMContentLoaded', async () => {
       }
     } catch (parseErr) {
       console.warn('Corrupt session cache found. Clearing storage...', parseErr);
+      sessionStorage.removeItem('pharmapulse_token');
+      sessionStorage.removeItem('pharmapulse_user');
       localStorage.removeItem('pharmapulse_token');
       localStorage.removeItem('pharmapulse_user');
       authToken = null;
@@ -798,8 +801,8 @@ async function handleLogin(e) {
     
     // 1. Commit credentials to memory and persistent storage
     authToken = data.token;
-    localStorage.setItem('pharmapulse_token', data.token);
-    localStorage.setItem('pharmapulse_user', JSON.stringify(data.user));
+    sessionStorage.setItem('pharmapulse_token', data.token);
+    sessionStorage.setItem('pharmapulse_user', JSON.stringify(data.user));
     state.currentUser = data.user;
 
     // 2. Reveal app dashboard
@@ -968,6 +971,8 @@ function triggerLogout() {
       }
 
       // 2. Wipe persistent storage & authentication memory
+      sessionStorage.removeItem('pharmapulse_token');
+      sessionStorage.removeItem('pharmapulse_user');
       localStorage.removeItem('pharmapulse_token');
       localStorage.removeItem('pharmapulse_user');
       authToken = null;
@@ -3518,7 +3523,7 @@ async function handleSaveStaff(e) {
       if (response && response.avatar_url) {
         state.currentUser.avatar_url = response.avatar_url;
       }
-      localStorage.setItem('pharmapulse_user', JSON.stringify(state.currentUser));
+      sessionStorage.setItem('pharmapulse_user', JSON.stringify(state.currentUser));
       if (typeof updateSidebarUserProfile === 'function') {
         updateSidebarUserProfile();
       }
@@ -3942,3 +3947,58 @@ async function sendChatMessage(e) {
   }
 }
 
+// Auto-logout after 15 minutes of inactivity
+let inactivityTimer;
+const TIMEOUT_DURATION =  5 *60 * 1000; // 5 minutes
+
+function resetInactivityTimer() {
+  clearTimeout(inactivityTimer);
+  if (authToken) {
+    inactivityTimer = setTimeout(() => {
+      alert('Your session has expired due to inactivity. Please log in again.');
+      if (typeof triggerLogout === 'function') {
+        triggerLogout();
+      }
+    }, TIMEOUT_DURATION);
+  }
+}
+
+// Track user actions
+['click', 'mousemove', 'keydown', 'scroll', 'touchstart'].forEach(evt => {
+  window.addEventListener(evt, resetInactivityTimer, false);
+});
+
+// Start tracking immediately if logged in
+resetInactivityTimer();
+
+// ==========================================
+// Desktop Sidebar Collapse Toggle
+// ==========================================
+document.addEventListener('DOMContentLoaded', () => {
+  const desktopToggleBtn = document.getElementById('desktopSidebarToggle');
+
+  // Restore preference if desktop
+  if (localStorage.getItem('pharmapulse_desktop_collapsed') === 'true' && window.innerWidth >= 1025) {
+    document.body.classList.add('sidebar-collapsed');
+  }
+
+  if (desktopToggleBtn) {
+    desktopToggleBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (window.innerWidth >= 1025) {
+        document.body.classList.toggle('sidebar-collapsed');
+        const isCollapsed = document.body.classList.contains('sidebar-collapsed');
+        localStorage.setItem('pharmapulse_desktop_collapsed', isCollapsed);
+      }
+    });
+  }
+
+  // Remove collapsed class automatically if screen shrinks to mobile/tablet
+  window.addEventListener('resize', () => {
+    if (window.innerWidth < 1025) {
+      document.body.classList.remove('sidebar-collapsed');
+    } else if (localStorage.getItem('pharmapulse_desktop_collapsed') === 'true') {
+      document.body.classList.add('sidebar-collapsed');
+    }
+  });
+});
