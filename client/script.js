@@ -1533,9 +1533,28 @@ async function completeDispense() {
 
 function openInvoiceModal(inv) {
   const container = document.getElementById('invoice-preview-content');
+
+  // Convert raw UTC/ISO timestamp to IST, or leave as-is if already formatted
+  let displayTimestamp = inv.timestamp;
+  if (inv.timestamp) {
+    const parsedDate = new Date(inv.timestamp);
+    if (!isNaN(parsedDate.getTime())) {
+      displayTimestamp = parsedDate.toLocaleString('en-IN', {
+        timeZone: 'Asia/Kolkata',
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: true
+      });
+    }
+  }
+
   container.innerHTML = `
     <div class="inv-detail-row"><span>Invoice ID:</span><strong>${inv.id}</strong></div>
-    <div class="inv-detail-row"><span>Date &amp; Time:</span><span>${inv.timestamp}</span></div>
+    <div class="inv-detail-row"><span>Date &amp; Time:</span><span>${displayTimestamp}</span></div>
     <div class="inv-detail-row"><span>Patient / Customer:</span><span>${inv.customer}</span></div>
     <div class="inv-detail-row"><span>Tender Method:</span><span>${inv.tender}</span></div>
     <hr style="margin: 10px 0; border: none; border-top: 1px solid var(--border-color);" />
