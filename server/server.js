@@ -848,7 +848,19 @@ app.post('/api/pos/dispense', authenticateToken, (req, res) => {
   if (!items || items.length === 0) return res.status(400).json({ error: 'Cart is empty.' });
 
   const invoiceId = 'INV-' + Math.floor(100000 + Math.random() * 900000);
-  const timestamp = new Date().toLocaleString();
+
+  // Force Indian Standard Time (IST) on Vercel servers
+  const timestamp = new Date().toLocaleString('en-IN', {
+    timeZone: 'Asia/Kolkata',
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: true
+  });
+
   const itemsDispensed = items.map(i => `${i.name} (${i.qty})`).join(', ');
 
   // Determine if any item in cart is prescription / controlled
