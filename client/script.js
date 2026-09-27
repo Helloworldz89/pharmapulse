@@ -1506,8 +1506,8 @@ async function completeDispense() {
 
     state.lastDispensedInvoice = {
       id: data.invoiceId,
-      timestamp: formattedLocalTimestamp, // ✅ Formatted to IST
-      rawTimestamp: data.timestamp,       // Preserved in case ISO format is needed elsewhere
+      timestamp: formattedLocalTimestamp, 
+      rawTimestamp: data.timestamp,       
       customer: data.customer,
       tender: data.tender,
       items: [...state.cart],
