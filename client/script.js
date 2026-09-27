@@ -1491,9 +1491,23 @@ async function completeDispense() {
   try {
     const data = await apiRequest('/pos/dispense', 'POST', payload);
 
+    // Format the timestamp to local IST
+    const rawDate = data.timestamp ? new Date(data.timestamp) : new Date();
+    const formattedLocalTimestamp = rawDate.toLocaleString('en-IN', {
+      timeZone: 'Asia/Kolkata',
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: true
+    });
+
     state.lastDispensedInvoice = {
       id: data.invoiceId,
-      timestamp: data.timestamp,
+      timestamp: formattedLocalTimestamp, // ✅ Formatted to IST
+      rawTimestamp: data.timestamp,       // Preserved in case ISO format is needed elsewhere
       customer: data.customer,
       tender: data.tender,
       items: [...state.cart],
