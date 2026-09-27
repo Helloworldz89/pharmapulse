@@ -1377,7 +1377,7 @@ function changeCartQty(medId, delta) {
   renderCart();
 }
 
-function removeCartItem(medId) {
+function removeFromCart(medId) {
   state.cart = state.cart.filter(c => c.id !== medId);
   renderCart();
 }
