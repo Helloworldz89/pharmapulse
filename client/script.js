@@ -1531,6 +1531,20 @@ const formattedLocalTimestamp = new Date(data.timestamp).toLocaleString('en-IN',
 
 function openInvoiceModal(inv) {
   const container = document.getElementById('invoice-preview-content');
+  // SAFE TIME FORMATTER: If it's already a formatted string, keep it; if it's a date/ISO, format to IST
+  let displayTime = inv.timestamp;
+  const parsed = new Date(inv.timestamp);
+  if (!isNaN(parsed.getTime())) {
+    displayTime = parsed.toLocaleString('en-IN', {
+      timeZone: 'Asia/Kolkata',
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true
+    });
+  }
   container.innerHTML = `
     <div class="inv-detail-row"><span>Invoice ID:</span><strong>${inv.id}</strong></div>
     <div class="inv-detail-row"><span>Date &amp; Time:</span><span>${inv.timestamp}</span></div>
