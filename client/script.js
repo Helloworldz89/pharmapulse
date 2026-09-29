@@ -1492,44 +1492,15 @@ async function completeDispense() {
     const data = await apiRequest('/pos/dispense', 'POST', payload);
 
    
-    const formattedLocalTimestamp = (() => {
-  if (!data?.timestamp) {
-    return new Date().toLocaleString('en-IN', {
-      timeZone: 'Asia/Kolkata',
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-      hour12: true
-    });
-  }
-
-  // Handle SQLite / UTC strings missing the trailing 'Z' (e.g. "2026-09-29 15:26:00")
-  let dateStr = String(data.timestamp);
-  if (/^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}:\d{2}/.test(dateStr) && !dateStr.endsWith('Z')) {
-    dateStr = dateStr.replace(' ', 'T') + 'Z';
-  }
-
-  const parsed = new Date(dateStr);
-
-  // If already a pre-formatted readable string or unparseable, return as-is
-  if (isNaN(parsed.getTime())) {
-    return data.timestamp;
-  }
-
-  return parsed.toLocaleString('en-IN', {
-    timeZone: 'Asia/Kolkata',
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    hour12: true
-  });
-})();
+const formattedLocalTimestamp = new Date(data.timestamp).toLocaleString('en-IN', {
+  timeZone: 'Asia/Kolkata',
+  day: '2-digit',
+  month: 'short',
+  year: 'numeric',
+  hour: '2-digit',
+  minute: '2-digit',
+  hour12: true
+});
 
     state.lastDispensedInvoice = {
       id: data.invoiceId,

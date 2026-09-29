@@ -849,17 +849,7 @@ app.post('/api/pos/dispense', authenticateToken, (req, res) => {
 
   const invoiceId = 'INV-' + Math.floor(100000 + Math.random() * 900000);
 
-  // Force Indian Standard Time (IST) on Vercel servers
-  const timestamp = new Date().toLocaleString('en-IN', {
-    timeZone: 'Asia/Kolkata',
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    hour12: true
-  });
+ const timestamp = new Date().toISOString();
 
   const itemsDispensed = items.map(i => `${i.name} (${i.qty})`).join(', ');
 
